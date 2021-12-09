@@ -82,7 +82,7 @@ levels(glass$Type) ## see what levels are contained within the dataset
 #head(glass)
 
 ## add a binary column that expresses only whether the glass is window glass or not
-glass %>% 
+glass<-glass %>% 
   mutate(Window = case_when(as.numeric(Type) <= 4 ~ 1, as.numeric(Type) > 4 ~ 0))
 
 ##  change glass$Type to numeric since they were factor
@@ -98,11 +98,78 @@ glimpse(glass)
 
 ```{R}
 library(cluster)
-# clustering code here
 
+## set up the wss graph with kmeans.
+## empty vector wss
+wss<-vector() 
+## function that goes from one to ten to test for possible k from 1 to 10
+for(i in 1:10){
+  ## remove the Type and Window from the dataframe since they are categorical variables then pass it to kmeans
+temp<- glass %>% select(-(Type)) %>% select(-Window) %>% kmeans(i)
+wss[i]<-temp$tot.withinss
+}
+## plot the whole thing
+ggplot()+geom_point(aes(x=1:10,y=wss))+geom_path(aes(x=1:10,y=wss))+
+  xlab("clusters")+scale_x_continuous(breaks=1:10)
+```
+Using the older method of the WSS graph for determining k, it is not completely clear how many clusters there should be. The "elbow" looks like it could be at 4 though it is also possible that it could be 7 since there is a continued sharp decline and then a rapid change in direction. Given that, I will also, use the sillhouette method.
+
+```{r}
+clust_dat <- glass %>% select(-(Type)) %>% select(-Window)
+sil_width<-vector() #empty vector to hold mean sil width
+for(i in 2:10){  
+  kms <- kmeans(clust_dat,centers=i) #compute k-means solution
+  sil <- silhouette(kms$cluster,dist(clust_dat)) #get sil widths
+  sil_width[i]<-mean(sil[,3]) #take averages (higher is better)
+}
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
+```
+Here it looks like 2 might be the best it can possibly be so I will attempt the clustering with k=2.
+
+```{r}
+set.seed(322)
+kmeans1 <- clust_dat %>% kmeans(2)
+kmeans1
+
+#you can grab lots of stuff
+kmeans1$size
+kmeans1$centers
+kmeans1$cluster
+kmeans1$betweenss
+kmeans1$tot.withinss
 ```
 
-Discussion of clustering here
+```{r}
+pam1<-clust_dat%>%pam(k=2)
+pam1
+```
+```{r}
+pamclust<-clust_dat%>%mutate(cluster=as.factor(pam1$clustering))
+pamclust%>%group_by(cluster)%>%summarize_if(is.numeric,mean,na.rm=T)
+```
+
+```{r}
+glass%>%slice(pam1$id.med)
+```
+
+
+
+Here, K means and PAM clustering produce very nearly the same results, we can see that the medoids of the 2 clusters are type 3 and type 6 glass. Those types correspond with vehicle windows and tableware. That also makes one of the clusters centered on windows and one non-windows. A few of the elements are very close together while others are farther apart. RI is different by only 0.00126 while Mg is different by 3.57. 
+
+```{r}
+pam1$silinfo$avg.width
+plot(pam1,which=2)
+```
+Average silhouette width is 0.56 which is reasonable structure based on the standard cutoffs. This is also what I would have expected to get based on the previous graph which showed approximately 0.56 average silhouette width k=2. Based on that same graph, for k=4 or k=7 I could have expected to achieve silhouette width of only .35-0.41 which would have been considered weak, possibly artificial in origin. 
+
+```{R fig.width=12, fig.height=6}
+library(GGally)
+final <- clust_dat %>% mutate(cluster=as.factor(pam1$clustering))
+ggpairs(final, aes(color=cluster))
+#ggpairs(final, columns =1:4, aes(color=cluster))
+```
+Interestingly, from this correlation matrix, we can see that there really isn't strong correlation between most of the elements and each other. However, there is actually strong correlation between Ca and RI. Additionally, in many cases, the clusters aren't particularly clear. Mg, identified above as being most different, has clusters significantly separated from one another. K has some decent separation as well.
+
     
     
 ### Dimensionality Reduction with PCA
