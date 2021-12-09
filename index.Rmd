@@ -208,19 +208,56 @@ eigen(cor(glass_nums))
 ```
 ```{r}
 library(factoextra)
-fviz_pca(glass_pca)
+fviz_pca_biplot(glass_pca, col.ind = glass$Type, gradient.cols = c("red", "white", "navy")) + coord_fixed() 
 ```
+The first 5 Components are all that should be kept in order to evaluate data most effectively, especially for those analytic methods like K-Nearest neighbors which do better with less features. By 5 components, more than 80% of the variance has been accounted which should give enough data to effectively create models that are able to interpret new data but are not distracted by noise which doesn't contribute as much to the overall information. 
+
 ```{r}
+Name <-  rownames(glass)
+
+#highest scores on PC1 
+glass_pca$scores %>% as.data.frame %>% cbind(Name, .) %>% top_n(3, Comp.1) %>% 
+  select(Name:Comp.5)
+
+## These are specifically the first five principal components saved for possible further use
+PC1 <- glass_pca$scores[,1]
+PC2 <- glass_pca$scores[,2]
+PC3 <- glass_pca$scores[,3]
+PC4 <- glass_pca$scores[,4]
+PC5 <- glass_pca$scores[,5]
 
 ```
 
-
+These are the specific glass samples that scored highest on each of the principal components. 
 
 ###  Linear Classifier
 
 ```{R}
-# linear classifier code here
+library(caret)
+## separate into features and target portion where the binary column is the target
+glass_X <- glass %>% select(-(Window)) %>% select(-(Type)) %>% as.data.frame
+glass_y <- glass %>% select(Window)
+
 ```
+Because Type is used here to create the binary column windows which is used to classify the data here, I will exclude type from analysis. 
+```{r}
+glass %>%
+  ggplot( aes(glass$RI + glass$Na + glass$Mg + glass$Al + glass$Si + glass$K + glass$Ca + glass$Ba + glass$Fe,glass$Window))+geom_point()+geom_smooth(method="glm", se=F, method.args = list(family = "binomial"))+ylim(0,1)+geom_hline(yintercept=.5, lty=2)
+
+fit_glm <- glm(glass$Window ~ glass$RI + glass$Na + glass$Mg + glass$Al + glass$Si + glass$K + glass$Ca + glass$Ba + glass$Fe,  family = "binomial")
+
+p_hat_glm <- predict(fit_glm, type = "response")
+
+p_hat_glm %>% round(3)
+```
+
+```{r}
+class_diag(p_hat_glm, truth = glass$Window, positive = 1)
+```
+With Accuracy of 0.98 and AUC of 0.9979, this is model is actually very good at predicting whether the glass belongs to windows or not based on chemical composition and refractive index. The lowest score, of 0.9211, belongs to the specificity column which means that it does a slightly worse job of correctly predicting the true negatives. In this case, I have assigned the non window glass to be the negative. This may be in part because the data is slightly imbalanced. With cross validation, it is possible that there may be improvement in these numbers. 
+
+
+
 
 ```{R}
 # cross-validation of linear classifier here
