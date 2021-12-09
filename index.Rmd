@@ -124,11 +124,11 @@ for(i in 2:10){
 }
 ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
 ```
-Here it looks like 2 might be the best it can possibly be so I will attempt the clustering with k=2.
+Here it looks like 3 might be the best it can possibly be so I will attempt the clustering with k=3.
 
 ```{r}
 set.seed(322)
-kmeans1 <- clust_dat %>% kmeans(2)
+kmeans1 <- clust_dat %>% kmeans(3)
 kmeans1
 
 #you can grab lots of stuff
@@ -140,7 +140,7 @@ kmeans1$tot.withinss
 ```
 
 ```{r}
-pam1<-clust_dat%>%pam(k=2)
+pam1<-clust_dat%>%pam(k=3)
 pam1
 ```
 ```{r}
@@ -154,13 +154,13 @@ glass%>%slice(pam1$id.med)
 
 
 
-Here, K means and PAM clustering produce very nearly the same results, we can see that the medoids of the 2 clusters are type 3 and type 6 glass. Those types correspond with vehicle windows and tableware. That also makes one of the clusters centered on windows and one non-windows. A few of the elements are very close together while others are farther apart. RI is different by only 0.00126 while Mg is different by 3.57. 
+Here, K means and PAM clustering produce very nearly the same results, we can see that the medoids of the 2 clusters are type 3, type 4, and type 6 glass.  That also makes two of the clusters centered on windows and one non-windows. A few of the elements are very close together while others are farther apart. RI is different by only 0.00126 while Mg is different by 3.57. 
 
 ```{r}
 pam1$silinfo$avg.width
 plot(pam1,which=2)
 ```
-Average silhouette width is 0.56 which is reasonable structure based on the standard cutoffs. This is also what I would have expected to get based on the previous graph which showed approximately 0.56 average silhouette width k=2. Based on that same graph, for k=4 or k=7 I could have expected to achieve silhouette width of only .35-0.41 which would have been considered weak, possibly artificial in origin. 
+Average silhouette width is 0.58 which is reasonable structure based on the standard cutoffs. This is also what I would have expected to get based on the previous graph which showed approximately 0.58 average silhouette width k=3. Based on that same graph, for other k values I could have expected to achieve silhouette width of only .35-0.41 which would have been considered weak, possibly artificial in origin. 
 
 ```{R fig.width=12, fig.height=6}
 library(GGally)
@@ -168,7 +168,7 @@ final <- clust_dat %>% mutate(cluster=as.factor(pam1$clustering))
 ggpairs(final, aes(color=cluster))
 #ggpairs(final, columns =1:4, aes(color=cluster))
 ```
-Interestingly, from this correlation matrix, we can see that there really isn't strong correlation between most of the elements and each other. However, there is actually strong correlation between Ca and RI. Additionally, in many cases, the clusters aren't particularly clear. Mg, identified above as being most different, has clusters significantly separated from one another. K has some decent separation as well.
+Interestingly, from this correlation matrix, we can see that there really isn't strong correlation between most of the elements and each other. However, there is actually strong correlation between Ca and RI. Additionally, in many cases, the clusters aren't particularly clear. Mg, identified above as being most different, has clusters significantly separated from one another. K has some decent separation as well. It is also clear that cluster 1 is much larger than the other clusters.
 
     
     
@@ -176,9 +176,45 @@ Interestingly, from this correlation matrix, we can see that there really isn't 
 
 ```{R}
 # PCA code here
+library(ggplot2)
+library(ggsci)
+glass_pca<-princomp(clust_dat, cor = T)
+summary(glass_pca, loadings=T)
+
+## to visualize the component information
+eigval <-  glass_pca$sdev^2 #square to convert SDs to eigenvalues
+varprop=round(eigval/sum(eigval), 2) #proportion of var explained by each PC
+
+ggplot() + geom_bar(aes(y=varprop, x=1:9), stat="identity") + xlab("") + geom_path(aes(y=varprop, x=1:9)) + 
+  geom_text(aes(x=1:9, y=varprop, label=round(varprop, 2)), vjust=1, col="white", size=5) + 
+  scale_y_continuous(breaks=seq(0, .6, .2), labels = scales::percent) + 
+  scale_x_continuous(breaks=1:10)
+
 ```
 
-Discussions of PCA here. 
+Through looking at the summary as well as the graph, it is clear that the top 2 components each provide about 25% of the information and then each provides less information. By the 5th component, nearly 90% of the data has been accounted for and once 6 components have been used, 95% of the data has been accounted for. This means that the remaining 3 components, collectively, only provide 5% of data. 
+
+```{r}
+## a more clear-cut way to show the cumulative variance
+## the eigenvalues is amount of variance in direction of each PC
+round(cumsum(eigval)/sum(eigval), 3) #cumulative proportion of variance
+
+```
+
+```{r}
+glass_nums <- glass %>% select_if(is.numeric) %>% scale
+eigen(cor(glass_nums))
+
+```
+```{r}
+library(factoextra)
+fviz_pca(glass_pca)
+```
+```{r}
+
+```
+
+
 
 ###  Linear Classifier
 
