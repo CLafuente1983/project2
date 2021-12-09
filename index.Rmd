@@ -61,35 +61,36 @@ I chose the Glass Identification dataset from the MLBench repository for this pr
 In addition to these variables, I also added a binary variable to express simply whether this piece is window glass or not. As can be seen from the categories, window glass would correspond with anything of category 4 or lower while non-window glass would be category 5 or higher. 
   I found this dataset and it seemed particularly interesting because glass can be formed by nature (for example by lightning in the sand) as well as made by people and manipulated to form functional items like windows or simply to make art. It is interesting to think that it can be evaluated and sorted into different categories or types of data based on its chemical composition and refractive index.
   ![lightning](./img/sand_glass.jpg)
-   ![lightning](./img/daniela_forti_sculpture.jpg)
-   This is a Daniela Forti Glass Sculpture. 
+  This is glass formed by lightning that has struck sand.
+   ![Daniela Forte Glass Sculpture](./img/daniela_forti_sculpture.jpg)
+   This is a Daniela Forti Glass Sculpture. Both are glass but would have significantly different refractive indexes, and chemical compositions and should be able to be categorized differently by predictive models. 
 
 ```{R}
+## some libraries to make things easier and make sure that data can be read and used 
 library(tidyverse)
 library(tidyr)
 library(dplyr)
-# read your datasets in here, e.g., with read_csv()
-#apd_rp<-read_csv("./data/2020_Racial_Profiling__RP__dataset.csv")
-#apd_rp
-#labor<-read_csv("./data/LaborSupply.csv")
-#labor
+## the library that contains the data set
 library(mlbench)
-data(Glass)
+data(Glass) ## this is the data set to be used here
 str(Glass)
-#library(help = mlbench)
-glass<-(Glass)
-dim(Glass)
-head(glass)
-levels(glass$Type)
+
+glass<-(Glass) ## save the dataset as simply glass in order to use it more easily
+dim(Glass) ## examine the dimensions 
+head(glass) ## get a preview of the dataset
+levels(glass$Type) ## see what levels are contained within the dataset
 #head(glass)
 
+## add a binary column that expresses only whether the glass is window glass or not
 glass %>% 
   mutate(Window = case_when(as.numeric(Type) <= 4 ~ 1, as.numeric(Type) > 4 ~ 0))
 
+##  change glass$Type to numeric since they were factor
 glass$Type <- as.numeric(glass$Type)
-# if your dataset needs tidying, do so here
-glass$Type
-# any other code here
+
+#glass$Type
+
+## take a look at the current dataset
 glimpse(glass)
 ```
 
