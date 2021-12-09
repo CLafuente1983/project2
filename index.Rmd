@@ -46,19 +46,51 @@ class_diag <- function(score, truth, positive, cutoff=.5){
 
 # Mining, Classification, Prediction
 
-## Name and EID here
+## Cristina Lafuente, cel726
 
 ### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information
+I chose the Glass Identification dataset from the MLBench repository for this project. I find this data particularly interesting because it breaks down the chemical composition of the glass into its base components and then, through data analysis, a model can be created which can be used to predict what a specific piece of glass came from. In this data set, there is a column listed as "RI" which is the Refractive index, commonly called 'n' and used in Snell's law to determine by how much light is bent through the glass. In addition to the Refractive Index, the dataset also has the amount of each of the elements Na: Sodium (unit measurement: weight percent in corresponding oxide, as are attributes 4-10), Mg: Magnesium, Al: Aluminum, Si: Silicon, K: Potassium, Ca: Calcium, Ba: Barium, Fe: Iron. Finally, there is a category called "Type" where type is listed as a number 1-7. Those correspond with: 
+    1 building_windows_float_processed
+--  2 building_windows_non_float_processed
+--  3 vehicle_windows_float_processed
+--  4 vehicle_windows_non_float_processed (none in this database)
+--  5 containers
+--  6 tableware
+--  7 headlamps
+In addition to these variables, I also added a binary variable to express simply whether this piece is window glass or not. As can be seen from the categories, window glass would correspond with anything of category 4 or lower while non-window glass would be category 5 or higher. 
+  I found this dataset and it seemed particularly interesting because glass can be formed by nature (for example by lightning in the sand) as well as made by people and manipulated to form functional items like windows or simply to make art. It is interesting to think that it can be evaluated and sorted into different categories or types of data based on its chemical composition and refractive index.
+  ![lightning](./img/sand_glass.jpg)
+   ![lightning](./img/daniela_forti_sculpture.jpg)
+   This is a Daniela Forti Glass Sculpture. 
 
 ```{R}
 library(tidyverse)
+library(tidyr)
+library(dplyr)
 # read your datasets in here, e.g., with read_csv()
+#apd_rp<-read_csv("./data/2020_Racial_Profiling__RP__dataset.csv")
+#apd_rp
+#labor<-read_csv("./data/LaborSupply.csv")
+#labor
+library(mlbench)
+data(Glass)
+str(Glass)
+#library(help = mlbench)
+glass<-(Glass)
+dim(Glass)
+head(glass)
+levels(glass$Type)
+#head(glass)
 
+glass %>% 
+  mutate(Window = case_when(as.numeric(Type) <= 4 ~ 1, as.numeric(Type) > 4 ~ 0))
+
+glass$Type <- as.numeric(glass$Type)
 # if your dataset needs tidying, do so here
-
+glass$Type
 # any other code here
+glimpse(glass)
 ```
 
 ### Cluster Analysis
@@ -66,6 +98,7 @@ library(tidyverse)
 ```{R}
 library(cluster)
 # clustering code here
+
 ```
 
 Discussion of clustering here
