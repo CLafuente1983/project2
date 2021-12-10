@@ -304,14 +304,42 @@ Here, I can see that the Area Under the Curve is 0.957 which is not as high as b
 
 ```{R}
 library(caret)
-# non-parametric classifier code here
+fit<-knn3(Window ~ RI + Na + Mg + Al + Si + K + Ca + Ba + Fe, data=glass)
+probs <- predict(fit, newdata = glass)[,2]
+class_diag(probs, truth = glass$Window, positive = 1)
+table(truth = glass$Window, predictions = probs > 0.5)
+
+#data.frame(probs, glass$Window)
 ```
 
 ```{R}
-# cross-validation of np classifier here
-```
+set.seed(1234)
+k = 10
 
-Discussion
+data <- sample_frac(glass)
+folds<-cut(1:nrow(glass), breaks=k, labels=F)
+
+diags <- NULL
+
+
+for (i in 1:k){
+  train<-data[folds !=i,]
+  test<-data[folds==i, ]
+  truth <-test$Window
+  fit<-knn3(Window ~ RI + Na + Mg + Al + Si + K + Ca + Ba + Fe, data=train)
+  prob <- predict(fit, newdata = test)[,2]
+  diags<-rbind(diags,class_diag(prob,truth, positive = 1))
+}
+summarize_all(diags,mean)
+
+```
+Since there is not a huge drop in the AUC from the single case to the cross validated case, there was likely some over-fitting but not a terrible amount. The AUC for the whole dataset was 0.9936 compared to 0.96 for the cross validated data. Either model is likely good but the cross validated model is more likely to continue to predict new data with this accuracy as it comes in. In both cases, specificity seems a bit low (especially compared to the other data) this is likely due, in part to an imbalance in the data set. Here true negatives are low.
+
+
+```{r}
+data.frame(probs, truth = glass$Window) %>%
+  ggplot(aes(probs, color = truth)) + geom_density(aes(fill = as.factor(truth)))
+```
 
 
 ### Regression/Numeric Prediction
@@ -360,18 +388,47 @@ For the regression model, I wanted to see if we could determine the specific typ
 
 ```{R}
 library(reticulate)
-
+use_python("/usr/bin/python3")
+#use_virtualenv("myenv")
+#py_install("matplotlib")
+plt <- import("matplotlib")
+plt$use("Agg", force = TRUE)
+#py_install("pandas")
+#py_install("numpy")
+np<- import("numpy")
+pd<- import("pandas")
 ```
 
 ```{python}
-# python code here
-```
+## import the glass dataFrame from r to python using reticulate
+glass = r.glass
+type(glass) ## check what type of object glass is
 
-Discussion
+## see how many of each type of glass object exist within the dataFrame
+glass['Type'].value_counts()
+ 
+## determine the mean of the columns
+print("The mean of the columns is : \n", glass.mean())
+## determine the median of the columns
+print("The median of the columns is: \n", glass.median())
+## determine the standard deviation
+print("The standard deviation of the columns is \n:", glass.std())
+
+
+## create a graph that shows the various refractive indexes of different types of objects made with glass
+#plt.scatter(glass['RI'], glass['Type'])
+#plt.xlabel("Refractive Index")
+#plt.ylabel("Type")
+#plt.title("Refractive Indexes Per Type")
+#plt.show()
+
+```
+Here are some basic functions performed using reticulate to use python in r. First, I imported the dataFrame and checked its type. Using pandas, it was a pandas series. Then I counted how many occurrences of each type of glass there are in the dataFrame. Then, I checked the mean, median, and standard deviation of all the columns using numpy. Finally, using matplotlib, I plotted the refractive indexes against the types of glass. There is a lot of overlap but there was also some differentiation which is interesting to see. Unfortunately, when knitting this, there was some error with the way it was read and, I wasn't actually able to get this into the finished product. 
+![matplot lib graph](./img/matplotlib_RI.jpg)
 
 ### Concluding Remarks
 
-Include concluding remarks here, if any
+Overall, this dataset provided a some really clean data that was able to form some nice models. 
 
 
 
