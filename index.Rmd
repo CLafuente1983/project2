@@ -124,7 +124,11 @@ for(i in 2:10){
 }
 ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
 ```
-Here it looks like 3 might be the best it can possibly be so I will attempt the clustering with k=3.
+Here, there is a slight increase from 3 to 4 (which intermittently appears in the knit) but through experimentation, I have found that this is some kind of artificial increase. In fact, the best possible k to use here is 3. So I will run the clustering with k=3.
+
+For comparison, I am going to run clustering with both kmeans and with the pam clustering. 
+
+KMeans first: 
 
 ```{r}
 set.seed(322)
@@ -154,13 +158,13 @@ glass%>%slice(pam1$id.med)
 
 
 
-Here, K means and PAM clustering produce very nearly the same results, we can see that the medoids of the 2 clusters are type 3, type 4, and type 6 glass.  That also makes two of the clusters centered on windows and one non-windows. A few of the elements are very close together while others are farther apart. RI is different by only 0.00126 while Mg is different by 3.57. 
+Here, K means and PAM clustering produce very nearly the same results, we can see that the medoids of the 3 clusters are in type 3, type 4, and type 6 glass.  That also makes two of the clusters centered on windows and one non-windows. A few of the elements are very close together while others are farther apart. RI is different by only 0.00126 while Mg is different by 3.57. 
 
 ```{r}
 pam1$silinfo$avg.width
 plot(pam1,which=2)
 ```
-Average silhouette width is 0.58 which is reasonable structure based on the standard cutoffs. This is also what I would have expected to get based on the previous graph which showed approximately 0.58 average silhouette width k=3. Based on that same graph, for other k values I could have expected to achieve silhouette width of only .35-0.41 which would have been considered weak, possibly artificial in origin. 
+Average silhouette width is 0.58 which is reasonable structure based on the standard cutoffs. This is also what I would have expected to get based on the previous graph which showed approximately 0.58 average silhouette width k=3. Based on that same graph, for other k values I could have expected to achieve silhouette width of only .35-0.41 which would have been considered weak, possibly artificial in origin. In fact, when I ran this same analysis with k=4 which appeared that it would have given better results, I actually got an average silhouette width of 0.41. 
 
 ```{R fig.width=12, fig.height=6}
 library(GGally)
