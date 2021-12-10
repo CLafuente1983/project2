@@ -261,9 +261,44 @@ With Accuracy of 0.98 and AUC of 0.9979, this is model is actually very good at 
 
 ```{R}
 # cross-validation of linear classifier here
-```
+set.seed(1234)
+k=10 #choose number of folds
+data<-glass[sample(nrow(glass)),] %>% select(-Type)#randomly order rows
+folds<-cut(seq(1:nrow(glass)),breaks=k,labels=F) #create folds
+diags<-NULL
+for(i in 1:k){
+  ## Create training and test sets
+  train<-data[folds!=i,] 
+  test<-data[folds==i,]
+  truth<-test$Window ## Truth labels for fold i
+ 
+   ## Train model on training set (all but fold i)
+  fit<-glm(Window ~ RI + Na + Mg + Al + Si + K + Ca + Ba + Fe, data=train, family="binomial")
+  ## Test model on test set (fold i) 
+  
+  probs<-predict(fit, newdata = test, type="response")
+  ## Get diagnostics for fold i
+  
+  diags<-rbind(diags,class_diag(probs,truth, positive = 1))
+}
 
-Discussion here
+summarize_all(diags,mean) #average diagnostics across all k folds
+
+## using caret to do the cross validation
+#data ##testing
+set.seed(430)
+
+idx = createDataPartition(glass$Window, p = 0.75, list = FALSE)
+train = glass[idx, ] %>% select(-(Type))
+test = glass[-idx, ] %>% select(-Type)
+
+train
+glm_mod = train(Window ~ RI + Na + Mg + Al + Si + K + Ca + Ba + Fe, data = train, trControl = trainControl(method = "cv", number = 10), method = "glm",  family = "binomial")
+
+summary(glm_mod)
+glm_mod$results
+```
+Here, I can see that the Area Under the Curve is 0.957 which is not as high as before but with the cross validation method, I can see that there is likely to be more accuracy in this method because all of the cross validation. The Root Mean Squared Error is only 0.185 which is very low. The mean absolute error is also 0.0625 which is also very low. Considering the overall accuracy and area under the curve, it seems fair to say that this model is fairly accurate. 
 
 ### Non-Parametric Classifier
 
@@ -283,18 +318,49 @@ Discussion
 
 ```{R}
 # regression model code here
+library(rpart)
+library(rpart.plot)
+fit <- rpart(Type ~ RI + Na + Mg + Al + Si + K + Ca + Ba + Fe, data = glass)
+## plot the regression partition fit
+rpart.plot(fit)
+## create the prediction based on the regression partition
+pred<- predict(fit)
+## get the mean squared error
+mean((glass$Type - pred)^2)
 ```
 
 ```{R}
 # cross-validation of regression model here
+## set a seed so that the data pulls the same randoms each time
+set.seed(1234)
+## number of folds
+k = 10
+## set the data to the Glass data
+data<-glass[sample(nrow(glass)),]
+## fold info
+folds<-cut(1:nrow(glass), breaks=k, labels=F)
+
+MSE<-NULL
+## function for fit, predict and MSE for each fold
+for(i in 1:k){
+  train<-data[folds !=i,]
+  test<-data[folds==i, ]
+  truth <-test$Type
+  fit <- rpart(Type ~ RI + Na + Mg + Al + Si + K + Ca + Ba + Fe, data = train)
+  pred<-predict(fit, newdata = test)
+  MSE<-cbind(MSE,mean((truth-pred)^2))
+}
+## get the mean of the MSE 
+mean(MSE)
 ```
 
-Discussion
+For the regression model, I wanted to see if we could determine the specific type of the 7 types of glass, which window type specifically, whether it was an art piece or tableware, etc... The values of types are integer numbers from 1-7, in the case of the single model, the mean squared error is 0.64 which means that the distance from the model to the actual point is only 0.64. When cross validated, the mean squared error becomes 1.12 so there is obviously some over-fitting happening with the original data that is not happening in the cross validated version.
 
 ### Python 
 
 ```{R}
 library(reticulate)
+
 ```
 
 ```{python}
